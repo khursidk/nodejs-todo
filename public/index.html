@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        ul { list-style-type: none; padding: 0; }
+        li { padding: 10px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>To-Do List</h1>
+    <form id="task-form">
+        <input type="text" id="task-input" placeholder="New task" required>
+        <button type="submit">Add Task</button>
+    </form>
+    <ul id="tasks"></ul>
+
+    <script>
+        async function fetchTasks() {
+            const response = await fetch("/api/tasks");
+            const tasks = await response.json();
+            const tasksList = document.getElementById("tasks");
+            tasksList.innerHTML = "";
+            tasks.forEach(task => {
+                const li = document.createElement("li");
+                li.textContent = task.text;
+                li.style.textDecoration = task.completed ? "line-through" : "none";
+                li.onclick = () => toggleTask(task.id, !task.completed);
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteTask(task.id);
+                };
+                li.appendChild(deleteButton);
+                tasksList.appendChild(li);
+            });
+        }
+
+        async function addTask(text) {
+            await fetch("/api/tasks", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text })
+            });
+            fetchTasks();
+        }
+
+        async function toggleTask(id, completed) {
+            await fetch(`/api/tasks/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ completed })
+            });
+            fetchTasks();
+        }
+
+        async function deleteTask(id) {
+            await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+            fetchTasks();
+        }
+
+        document.getElementById("task-form").onsubmit = (e) => {
+            e.preventDefault();
+            const input = document.getElementById("task-input");
+            addTask(input.value);
+            input.value = "";
+        };
+
+        fetchTasks();
+    </script>
+</body>
+</html>
